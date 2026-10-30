@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Trawsgrifiwr Byw",
+    "slug": "trawsgrifiwr-byw",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "cymru.techiaith.trawsgrifiwrbyw",
+      "adaptiveIcon": {
+        "backgroundColor": "#00843D",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "react-native-vosk",
+        {
+          "models": [
+            "assets/model-cy"
+          ]
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ecccdbfa-cb72-4e69-9f23-523bd3800be5"
+      }
+    }
+  }
+}

@@ -38,6 +38,9 @@ Mae'r Trawsgrifiwr Byw angen 'OpenAL' wedi ei osod hefyd os am ei ddefnyddio ar 
 - Gwnewch yn weithredadwy: `chmod +x Trawsgrifiwr-Byw`
 - Rhedeg: `./Trawsgrifiwr-Byw`
 
+##### Android (Symudol)
+- Gweler y cyfarwyddiadau yn y ffolder [`mobile/`](mobile/) i redeg neu adeiladu'r ap ar gyfer ffonau a thabledi Android.
+
 ### ✨ Nodweddion
 
 - 🎤 **Adnabod Lleferydd Amser Real** - Gweld trawsgrifiadau wrth i chi siarad
@@ -188,6 +191,9 @@ The Trawsgrifiwr Byw also needs 'OpenAL' installed if it is to be used on a Wind
 - Download and extract `Trawsgrifiwr-Byw-Linux-x64-*.tar.gz`
 - Make executable: `chmod +x Trawsgrifiwr-Byw`
 - Run: `./Trawsgrifiwr-Byw`
+
+##### Android (Mobile)
+- See the [`mobile/`](mobile/) directory for quick start and build instructions for Android mobile devices.
 
 See **[USER_README.md](USER_README.md)** for detailed installation instructions.
 
