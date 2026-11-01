@@ -1,6 +1,6 @@
 {
   "name": "trawsgrifiwr-byw-mobile",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Ap adnabod Lleferydd Cymraeg Byw / Real-time Welsh Speech Recognition Mobile App",
   "main": "index.ts",
   "scripts": {
@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "prebuild": "expo prebuild",
     "eas-build-post-install": "bash ./download-model.sh",
-    "postinstall": "node -e \"const fs=require('fs'),p='node_modules/@react-native-ml-kit/translate-text/android/build.gradle';if(fs.existsSync(p)){let c=fs.readFileSync(p,'utf8');if(!c.includes('namespace')){fs.writeFileSync(p,c.replace('android {','android {\\\\n    namespace \\'com.rnmlkit.translatetext\\''));}}\""
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -14,6 +14,8 @@ import {
   Modal,
   Linking,
   AppState,
+  Switch,
+  Image,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -198,7 +200,7 @@ function MainApp() {
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>([]);
   const [sessions, setSessions] = useState<TranscriptionSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [showSessionsModal, setShowSessionsModal] = useState<boolean>(false);
+  const [showSessionsDropdown, setShowSessionsDropdown] = useState<boolean>(false);
   const [fontSize, setFontSize] = useState<number>(16);
   const [langMode, setLangMode] = useState<LanguageMode>('bilingual');
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -206,6 +208,8 @@ function MainApp() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
   const [isStorageLoaded, setIsStorageLoaded] = useState<boolean>(false);
   const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showTimestamps, setShowTimestamps] = useState<boolean>(true);
 
   const flatListRef = useRef<FlatList<TranscriptItem>>(null);
   const isNearBottomRef = useRef<boolean>(true);
@@ -373,6 +377,9 @@ function MainApp() {
           if (typeof savedSettings.translateEnabled === 'boolean') {
             setTranslateEnabled(savedSettings.translateEnabled);
             translateEnabledRef.current = savedSettings.translateEnabled;
+          }
+          if (typeof savedSettings.showTimestamps === 'boolean') {
+            setShowTimestamps(savedSettings.showTimestamps);
           }
           if (
             savedSettings.langMode === 'bilingual' ||
@@ -736,13 +743,13 @@ function MainApp() {
     setPartialText('');
     setPartialTranslation('');
     partialTranslationRef.current = '';
-    setShowSessionsModal(false);
+    setShowSessionsDropdown(false);
   };
 
   // Start a new discrete session
   const handleStartNewSession = () => {
     if (transcripts.length === 0 && !partialText && !currentSessionId) {
-      setShowSessionsModal(false);
+      setShowSessionsDropdown(false);
       showFeedback(
         t('Rydych eisoes mewn sesiwn newydd', 'Already in a new session')
       );
@@ -820,7 +827,7 @@ function MainApp() {
     setPartialText('');
     setPartialTranslation('');
     partialTranslationRef.current = '';
-    setShowSessionsModal(false);
+    setShowSessionsDropdown(false);
     showFeedback(
       t(
         `Adferwyd sesiwn (${session.items.length} brawddeg)`,
@@ -1093,107 +1100,40 @@ function MainApp() {
 
       {/* Header with generous margins and padding */}
       <View style={styles.header}>
-        {/* Clickable Header Title for Info & Licences */}
+        {/* Clickable Header Logo for Info & Licences */}
         <TouchableOpacity
-          style={styles.titleContainer}
+          style={styles.logoButton}
           onPress={() => setShowAboutModal(true)}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Trawsgrifiwr Byw"
+          accessibilityHint={t('Agor gwybodaeth am y rhaglen a thrwyddedau', 'Open app information and licences')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: theme.headerText }]}>
-              Trawsgrifiwr Byw
-            </Text>
-            <Ionicons
-              name="information-circle-outline"
-              size={18}
-              color={theme.subText}
-              style={{ marginLeft: 5, marginTop: 3 }}
-            />
-          </View>
-          <Text style={[styles.subtitle, { color: theme.subText }]}>
-            {langMode === 'cy'
-              ? 'Adnabod a Chyfieithu Byw ar y Ddyfais'
-              : langMode === 'en'
-              ? 'Live On-Device Speech Recognition & Translation'
-              : 'Trawsgrifio a Chyfieithu Byw'}
-          </Text>
+          <Image
+            source={require('./assets/icon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
         </TouchableOpacity>
 
         {/* Top Header Buttons with 44px+ touch targets */}
         <View style={styles.headerButtons}>
-          {/* Dark Mode Toggle */}
+          {/* Settings Menu Button */}
           <TouchableOpacity
             style={[styles.headerIconButton, { backgroundColor: theme.toggleInactiveBg }]}
-            onPress={() => {
-              setIsDarkMode((d) => {
-                const next = !d;
-                saveSettingsToStorage({ isDarkMode: next });
-                return next;
-              });
-            }}
+            onPress={() => setShowSettingsModal(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={isDarkMode ? 'sunny' : 'moon'}
-              size={18}
-              color={isDarkMode ? '#FBBF24' : '#475569'}
+              name="settings-outline"
+              size={19}
+              color={theme.headerText}
             />
-          </TouchableOpacity>
-
-          {/* Live Translation Toggle */}
-          <TouchableOpacity
-            style={[
-              styles.translateToggle,
-              { backgroundColor: translateEnabled ? '#00843D' : theme.toggleInactiveBg },
-            ]}
-            onPress={toggleTranslation}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="flash"
-              size={14}
-              color={translateEnabled ? '#FFFFFF' : theme.toggleInactiveText}
-            />
-            <Text
-              style={[
-                styles.translateToggleText,
-                { color: translateEnabled ? '#FFFFFF' : theme.toggleInactiveText },
-              ]}
-            >
-              EN LIVE
-            </Text>
-          </TouchableOpacity>
-
-          {/* Language Mode Toggle */}
-          <TouchableOpacity
-            style={[styles.langBadge, { backgroundColor: theme.toggleInactiveBg }]}
-            onPress={cycleLanguage}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.langBadgeText, { color: theme.toggleInactiveText }]}>
-              {langMode === 'bilingual' ? 'CY/EN' : langMode.toUpperCase()}
-            </Text>
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Status Card */}
-      <View
-        style={[
-          styles.statusCard,
-          { backgroundColor: theme.statusBg, borderColor: theme.statusBorder },
-        ]}
-      >
-        <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
-        <Text style={[styles.statusText, { color: theme.statusText }]} numberOfLines={2}>
-          {getStatusText()}
-        </Text>
-        {modelStatus === 'initializing' && (
-          <ActivityIndicator size="small" color="#F59E0B" style={{ marginLeft: 8 }} />
-        )}
       </View>
 
       {/* Feedback Toast */}
@@ -1203,14 +1143,17 @@ function MainApp() {
         </View>
       )}
 
-      {/* Live Input Card (Red Section) */}
+      {/* Live Input Card (Red Section with integrated live status) */}
       <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         <View style={styles.liveHeader}>
           <View style={styles.headerRow}>
-            <Ionicons name="mic-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.liveHeaderText}>
-              {t('Mewnbwn Byw', 'Live Input')}
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(), marginRight: 4 }]} />
+            <Text style={styles.liveHeaderText} numberOfLines={1}>
+              {getStatusText()}
             </Text>
+            {modelStatus === 'initializing' && (
+              <ActivityIndicator size="small" color="#FFFFFF" style={{ marginLeft: 4 }} />
+            )}
           </View>
           {isRecording && (
             <View style={styles.liveBadge}>
@@ -1261,13 +1204,10 @@ function MainApp() {
           { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
         ]}
       >
-        {/* Completed Header with clean flex layout so A- / A+ and Session controls are NEVER pushed off */}
+        {/* Completed Header with clean flex layout */}
         <View style={styles.completedHeader}>
           <View style={styles.headerTitleGroup}>
             <Ionicons name="chatbubbles-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.completedHeaderText} numberOfLines={1} ellipsizeMode="tail">
-              {langMode === 'cy' ? 'Brawddegau' : langMode === 'en' ? 'Sentences' : 'Brawddegau'}
-            </Text>
             {transcripts.length > 0 && (
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>{transcripts.length}</Text>
@@ -1275,7 +1215,7 @@ function MainApp() {
             )}
           </View>
 
-          {/* Right Header Controls: New Session, Session History, Auto-Save Toggle & Font Controls */}
+          {/* Right Header Controls: New Session, Session History Dropdown Trigger */}
           <View style={styles.headerRightControls}>
             {/* Start New Session Button */}
             {(transcripts.length > 0 || currentSessionId !== null) && (
@@ -1292,68 +1232,208 @@ function MainApp() {
               </TouchableOpacity>
             )}
 
-            {/* Sessions History Modal Button */}
+            {/* Sessions History Dropdown Button */}
             <TouchableOpacity
-              onPress={() => setShowSessionsModal(true)}
-              style={[styles.saveToggleBtn, styles.saveToggleBtnActive]}
-              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="folder-open-outline" size={13} color="#FFFFFF" />
-              <Text style={styles.saveToggleBtnText}>
-                {langMode === 'en' ? 'SESSIONS' : 'HANES'}
-                {sessions.length > 0 ? ` (${sessions.length})` : ''}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Local Storage Auto-save Toggle */}
-            <TouchableOpacity
-              onPress={toggleAutoSave}
+              onPress={() => setShowSessionsDropdown((prev) => !prev)}
               style={[
                 styles.saveToggleBtn,
-                autoSaveEnabled ? styles.saveToggleBtnActive : styles.saveToggleBtnInactive,
+                showSessionsDropdown ? styles.saveToggleBtnActiveSolid : styles.saveToggleBtnActive,
               ]}
               hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
               activeOpacity={0.7}
             >
               <Ionicons
-                name={autoSaveEnabled ? 'save' : 'save-outline'}
+                name={showSessionsDropdown ? 'chevron-up' : 'folder-open-outline'}
                 size={13}
-                color={autoSaveEnabled ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)'}
+                color="#FFFFFF"
               />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() =>
-                setFontSize((s) => {
-                  const next = Math.max(12, s - 2);
-                  saveSettingsToStorage({ fontSize: next });
-                  return next;
-                })
-              }
-              style={styles.fontButton}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.fontButtonText}>A−</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() =>
-                setFontSize((s) => {
-                  const next = Math.min(26, s + 2);
-                  saveSettingsToStorage({ fontSize: next });
-                  return next;
-                })
-              }
-              style={styles.fontButton}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.fontButtonText}>A+</Text>
+              <Text style={styles.saveToggleBtnText}>
+                {langMode === 'en' ? 'SESSIONS' : 'HANES'}
+                {sessions.length > 0 ? ` (${sessions.length})` : ''}
+              </Text>
+              <Ionicons
+                name={showSessionsDropdown ? 'chevron-up' : 'chevron-down'}
+                size={11}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Inline Sessions Dropdown Menu */}
+        {showSessionsDropdown && (
+          <View
+            style={[
+              styles.sessionsDropdownContainer,
+              { backgroundColor: theme.transcriptBoxBg, borderColor: theme.cardBorder },
+            ]}
+          >
+            <View style={styles.sessionsDropdownHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sessionsDropdownTitle, { color: theme.headerText }]}>
+                  {t('Hanes Sesiynau', 'Session History')}
+                </Text>
+                <Text style={[styles.sessionsDropdownSubtitle, { color: theme.subText }]}>
+                  {sessions.length === 0
+                    ? t('Dim sesiynau wedi’u cadw', 'No saved sessions')
+                    : t(
+                        `${sessions.length} sesiwn ar y ddyfais`,
+                        `${sessions.length} saved sessions on device`
+                      )}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleStartNewSession}
+                style={[styles.dropdownNewBtn, { backgroundColor: '#00843D' }]}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={14} color="#FFFFFF" />
+                <Text style={styles.dropdownNewBtnText}>
+                  {t('+ Sesiwn Newydd', '+ New Session')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.sessionsDropdownScroll}
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+            >
+              {sessions.length === 0 ? (
+                <View style={styles.emptyDropdownStateBox}>
+                  <Ionicons name="folder-open-outline" size={28} color={theme.subText} />
+                  <Text style={[styles.emptyDropdownStateText, { color: theme.subText }]}>
+                    {t(
+                      'Dim sesiynau wedi’u cadw eto. Bydd eich trawsgrifiadau yn ymddangos yma wrth siarad.',
+                      'No saved sessions yet. Transcribed speech will be listed here.'
+                    )}
+                  </Text>
+                </View>
+              ) : (
+                sessions.map((session) => {
+                  const isActive = session.id === currentSessionId;
+                  const firstTranslation = session.items[0]?.translation;
+                  return (
+                    <TouchableOpacity
+                      key={session.id}
+                      style={[
+                        styles.dropdownSessionRow,
+                        {
+                          backgroundColor: isActive
+                            ? (isDarkMode ? '#1E3A2F' : '#E6F4EA')
+                            : theme.cardBg,
+                          borderColor: isActive ? '#10B981' : theme.cardBorder,
+                        },
+                      ]}
+                      onPress={() => handleLoadSession(session)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ flex: 1, paddingRight: 6 }}>
+                        <View style={styles.dropdownSessionMetaRow}>
+                          <Text style={[styles.dropdownSessionDate, { color: theme.subText }]}>
+                            {session.createdAt}
+                          </Text>
+                          <View
+                            style={[
+                              styles.sessionCountPill,
+                              { backgroundColor: theme.timeBadgeBg },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.sessionCountPillText,
+                                { color: theme.timeBadgeText },
+                              ]}
+                            >
+                              {session.items.length}{' '}
+                              {langMode === 'cy'
+                                ? 'brawddeg'
+                                : langMode === 'en'
+                                ? 'sentences'
+                                : 'brawddeg'}
+                            </Text>
+                          </View>
+                          {isActive && (
+                            <View style={styles.activeSessionBadge}>
+                              <Text style={styles.activeSessionBadgeText}>
+                                {langMode === 'en' ? 'ACTIVE' : 'CYFREDOL'}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text
+                          style={[
+                            styles.dropdownSessionTitle,
+                            { color: theme.headerText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          “{session.title}”
+                        </Text>
+
+                        {firstTranslation ? (
+                          <Text
+                            style={[
+                              styles.dropdownSessionTranslation,
+                              { color: theme.translationText },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            ↳ [EN] {firstTranslation}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      <View style={styles.dropdownRowActions}>
+                        <TouchableOpacity
+                          style={[
+                            styles.dropdownDeleteBtn,
+                            { backgroundColor: isDarkMode ? '#3B1519' : '#FEE2E2' },
+                          ]}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(session.id);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            {sessions.length > 0 && (
+              <View style={[styles.dropdownFooterRow, { borderTopColor: theme.cardBorder }]}>
+                <TouchableOpacity
+                  style={styles.dropdownClearAllBtn}
+                  onPress={handleDeleteAllSessions}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                  <Text style={styles.dropdownClearAllText}>
+                    {t('Dileu Pob Sesiwn', 'Delete All')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.dropdownCloseBtn, { backgroundColor: theme.btnSecondaryBg }]}
+                  onPress={() => setShowSessionsDropdown(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.dropdownCloseText, { color: theme.btnSecondaryText }]}>
+                    {t('Cau’r Ddewislen', 'Close Dropdown')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Virtualized Transcripts List (Fix #9) */}
         <FlatList
@@ -1369,11 +1449,13 @@ function MainApp() {
             >
               {/* Original Welsh Utterance */}
               <View style={styles.transcriptLine}>
-                <View style={[styles.timeBadge, { backgroundColor: theme.timeBadgeBg }]}>
-                  <Text style={[styles.timeText, { color: theme.timeBadgeText }]}>
-                    {item.time}
-                  </Text>
-                </View>
+                {showTimestamps && (
+                  <View style={[styles.timeBadge, { backgroundColor: theme.timeBadgeBg }]}>
+                    <Text style={[styles.timeText, { color: theme.timeBadgeText }]}>
+                      {item.time}
+                    </Text>
+                  </View>
+                )}
                 <Text style={[styles.transcriptText, { fontSize, color: theme.transcriptText }]}>
                   {item.text}
                 </Text>
@@ -1484,11 +1566,11 @@ function MainApp() {
                           styles.emptySessionSecondaryBtn,
                           { backgroundColor: theme.btnSecondaryBg },
                         ]}
-                        onPress={() => setShowSessionsModal(true)}
+                        onPress={() => setShowSessionsDropdown(true)}
                         activeOpacity={0.8}
                       >
                         <Ionicons
-                          name="folder-open-outline"
+                          name="chevron-down-circle-outline"
                           size={15}
                           color={theme.btnSecondaryText}
                         />
@@ -1516,26 +1598,11 @@ function MainApp() {
         <View style={[styles.transcriptActions, { backgroundColor: theme.toolbarBg, borderColor: theme.toolbarBorder }]}>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: theme.btnSecondaryBg }]}
-            onPress={handleCopyWithTimestamps}
-            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="time-outline" size={16} color={theme.btnSecondaryText} />
-            <Text style={[styles.actionBtnText, { color: theme.btnSecondaryText }]}>
-              {langMode === 'cy' ? 'Amser' : langMode === 'en' ? 'Time' : 'Time'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: theme.btnSecondaryBg }]}
             onPress={handleCopyTextOnly}
             hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             activeOpacity={0.7}
           >
             <Ionicons name="copy-outline" size={16} color={theme.btnSecondaryText} />
-            <Text style={[styles.actionBtnText, { color: theme.btnSecondaryText }]}>
-              {langMode === 'cy' ? 'Testun' : langMode === 'en' ? 'Text' : 'Text'}
-            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1545,9 +1612,6 @@ function MainApp() {
             activeOpacity={0.7}
           >
             <Ionicons name="share-outline" size={16} color={theme.btnSecondaryText} />
-            <Text style={[styles.actionBtnText, { color: theme.btnSecondaryText }]}>
-              {t('Rhannu', 'Share')}
-            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1557,44 +1621,46 @@ function MainApp() {
             activeOpacity={0.7}
           >
             <Ionicons name="trash-outline" size={16} color="#EF4444" />
-            <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>
-              {t('Clirio', 'Clear')}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Main Microphone Button with generous margins away from phone corners */}
       <View style={styles.footerControls}>
-        <TouchableOpacity
-          style={[
-            styles.micButton,
-            isRecording ? styles.micButtonRecording : styles.micButtonReady,
-            modelStatus === 'initializing' && styles.micButtonDisabled,
-          ]}
-          onPress={isRecording ? handleStop : handleStart}
-          disabled={modelStatus === 'initializing'}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={isRecording ? 'stop' : 'mic'}
-            size={36}
-            color="#FFFFFF"
-          />
-          <Text style={styles.micButtonText}>
-            {isRecording
-              ? t('Stopio Recordio', 'Stop Recording')
-              : t('Dechrau Recordio', 'Start Recording')}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.micButtonWrapper}>
+          {isRecording && <View style={styles.micPulseRing} />}
+          <TouchableOpacity
+            style={[
+              styles.micButton,
+              isRecording ? styles.micButtonRecording : styles.micButtonReady,
+              modelStatus === 'initializing' && styles.micButtonDisabled,
+            ]}
+            onPress={isRecording ? handleStop : handleStart}
+            disabled={modelStatus === 'initializing'}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isRecording
+                ? t('Stopio Recordio', 'Stop Recording')
+                : t('Dechrau Recordio', 'Start Recording')
+            }
+            accessibilityState={{ disabled: modelStatus === 'initializing', busy: isRecording }}
+            activeOpacity={0.82}
+          >
+            <Ionicons
+              name={isRecording ? 'square' : 'mic'}
+              size={32}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Discrete Sessions History Modal */}
+      {/* Settings Modal */}
       <Modal
-        visible={showSessionsModal}
+        visible={showSettingsModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowSessionsModal(false)}
+        onRequestClose={() => setShowSettingsModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View
@@ -1607,17 +1673,14 @@ function MainApp() {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.headerText }]}>
-                  {t('Hanes Sesiynau', 'Session History')}
+                  {t('Gosodiadau', 'Settings')}
                 </Text>
                 <Text style={[styles.modalSubtitle, { color: theme.subText }]}>
-                  {t(
-                    `${sessions.length} sesiwn wedi’u cadw ar y ddyfais`,
-                    `${sessions.length} saved sessions on device`
-                  )}
+                  {t('Dewisiadau iaith, maint ac arddull', 'Language, sizing & theme preferences')}
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() => setShowSessionsModal(false)}
+                onPress={() => setShowSettingsModal(false)}
                 style={[styles.modalCloseButton, { backgroundColor: theme.toggleInactiveBg }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.7}
@@ -1626,194 +1689,337 @@ function MainApp() {
               </TouchableOpacity>
             </View>
 
-            {/* Top Action Bar inside Sessions Modal */}
-            <View style={styles.sessionsModalActionBar}>
-              <TouchableOpacity
-                style={[styles.newSessionPrimaryBtn, { backgroundColor: '#00843D' }]}
-                onPress={handleStartNewSession}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.newSessionPrimaryBtnText}>
-                  {t('Dechrau Sesiwn Newydd', 'Start New Session')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Saved Sessions List */}
+            {/* Modal Body */}
             <ScrollView
               style={styles.modalBody}
-              contentContainerStyle={{ paddingBottom: 12 }}
+              contentContainerStyle={{ paddingBottom: 16 }}
               showsVerticalScrollIndicator={true}
             >
-              {sessions.length === 0 ? (
-                <View style={styles.emptySessionsModalBox}>
-                  <Ionicons name="folder-open-outline" size={36} color={theme.subText} />
-                  <Text style={[styles.emptySessionsModalText, { color: theme.subText }]}>
-                    {t(
-                      'Dim sesiynau wedi’u cadw eto. Bydd eich trawsgrifiadau yn cael eu cadw yma fel sesiynau ar wahân wrth i chi siarad.',
-                      'No saved sessions yet. Your transcriptions will be saved here as discrete sessions as you speak.'
-                    )}
+              {/* 1. Theme / Dark Mode */}
+              <View style={[styles.settingsItemRow, { borderColor: theme.cardBorder }]}>
+                <View style={styles.settingsLabelGroup}>
+                  <View style={styles.settingsLabelRow}>
+                    <Ionicons
+                      name={isDarkMode ? 'moon' : 'sunny'}
+                      size={18}
+                      color={isDarkMode ? '#FBBF24' : '#00843D'}
+                    />
+                    <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                      {t('Modd Tywyll', 'Dark Mode')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.settingsItemDesc, { color: theme.subText }]}>
+                    {isDarkMode
+                      ? t('Thema dywyll ar waith', 'Dark theme active')
+                      : t('Thema olau ar waith', 'Light theme active')}
                   </Text>
                 </View>
-              ) : (
-                sessions.map((session) => {
-                  const isActive = session.id === currentSessionId;
-                  const firstTranslation = session.items[0]?.translation;
-                  return (
-                    <View
-                      key={session.id}
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={(val) => {
+                    setIsDarkMode(val);
+                    saveSettingsToStorage({ isDarkMode: val });
+                  }}
+                  trackColor={{ false: '#94A3B8', true: '#00843D' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* 2. Live Translation Toggle */}
+              <View style={[styles.settingsItemRow, { borderColor: theme.cardBorder }]}>
+                <View style={styles.settingsLabelGroup}>
+                  <View style={styles.settingsLabelRow}>
+                    <Ionicons name="language-outline" size={18} color="#00843D" />
+                    <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                      {t('Cyfieithu Byw (Cymraeg → Saesneg)', 'Live Translation (Welsh → English)')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.settingsItemDesc, { color: theme.subText }]}>
+                    {translateEnabled
+                      ? t(
+                          'Yn cyfieithu ar-ddyfais all-lein wrth i chi siarad',
+                          'Translating on-device offline as you speak'
+                        )
+                      : t('Cyfieithu wedi’i analluogi', 'Translation is turned off')}
+                  </Text>
+                </View>
+                <Switch
+                  value={translateEnabled}
+                  onValueChange={toggleTranslation}
+                  trackColor={{ false: '#94A3B8', true: '#00843D' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* 3. Timestamps Toggle */}
+              <View style={[styles.settingsItemRow, { borderColor: theme.cardBorder }]}>
+                <View style={styles.settingsLabelGroup}>
+                  <View style={styles.settingsLabelRow}>
+                    <Ionicons name="time-outline" size={18} color="#00843D" />
+                    <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                      {t('Dangos Stampiau Amser', 'Show Timestamps')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.settingsItemDesc, { color: theme.subText }]}>
+                    {showTimestamps
+                      ? t(
+                          'Stamp amser [HH:mm:ss] yn ymddangos wrth bob brawddeg',
+                          '[HH:mm:ss] timestamp shown on each sentence'
+                        )
+                      : t(
+                          'Cuddio stampiau amser ar y sgrin',
+                          'Hide timestamps from transcript display'
+                        )}
+                  </Text>
+                </View>
+                <Switch
+                  value={showTimestamps}
+                  onValueChange={(val) => {
+                    setShowTimestamps(val);
+                    saveSettingsToStorage({ showTimestamps: val });
+                    showFeedback(
+                      val
+                        ? t('Stampiau amser ymlaen', 'Timestamps enabled')
+                        : t('Stampiau amser i ffwrdd', 'Timestamps hidden')
+                    );
+                  }}
+                  trackColor={{ false: '#94A3B8', true: '#00843D' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* 4. Local Storage Auto-save Toggle */}
+              <View style={[styles.settingsItemRow, { borderColor: theme.cardBorder }]}>
+                <View style={styles.settingsLabelGroup}>
+                  <View style={styles.settingsLabelRow}>
+                    <Ionicons name="save-outline" size={18} color="#00843D" />
+                    <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                      {t('Cadw Sesiynau yn Awtomatig', 'Auto-save Sessions')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.settingsItemDesc, { color: theme.subText }]}>
+                    {autoSaveEnabled
+                      ? t(
+                          'Yn cadw sesiynau ar y ddyfais yn awtomatig',
+                          'Automatically saves discrete sessions on device'
+                        )
+                      : t(
+                          'Dim ond am y sesiwn bresennol (ni chedwir ar ôl cau)',
+                          'Temporary only (not auto-saved to device storage)'
+                        )}
+                  </Text>
+                </View>
+                <Switch
+                  value={autoSaveEnabled}
+                  onValueChange={toggleAutoSave}
+                  trackColor={{ false: '#94A3B8', true: '#00843D' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* 5. Text Scaling / Font Size */}
+              <View style={[styles.settingsSectionBox, { borderColor: theme.cardBorder, backgroundColor: theme.transcriptBoxBg }]}>
+                <View style={styles.settingsLabelRow}>
+                  <Ionicons name="text-outline" size={18} color="#00843D" />
+                  <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                    {t('Maint y Testun', 'Text Size')}
+                  </Text>
+                  <Text style={[styles.settingsFontSizeBadge, { backgroundColor: theme.timeBadgeBg, color: theme.timeBadgeText }]}>
+                    {fontSize}px
+                  </Text>
+                </View>
+                <Text style={[styles.settingsItemDesc, { color: theme.subText, marginTop: 4, marginBottom: 12 }]}>
+                  {t(
+                    'Addaswch faint y ffont ar gyfer darllen yn haws.',
+                    'Adjust font size across the live box and transcripts.'
+                  )}
+                </Text>
+
+                <View style={styles.settingsFontControlsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsFontBtn,
+                      { backgroundColor: theme.btnSecondaryBg },
+                      fontSize <= 12 && styles.settingsBtnDisabled,
+                    ]}
+                    onPress={() => {
+                      setFontSize((s) => {
+                        const next = Math.max(12, s - 2);
+                        saveSettingsToStorage({ fontSize: next });
+                        return next;
+                      });
+                    }}
+                    disabled={fontSize <= 12}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="remove" size={18} color={theme.btnSecondaryText} />
+                    <Text style={[styles.settingsFontBtnText, { color: theme.btnSecondaryText }]}>
+                      A−
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Font Size Preview */}
+                  <View style={styles.settingsFontPreviewBox}>
+                    <Text
                       style={[
-                        styles.sessionCard,
-                        {
-                          backgroundColor: theme.transcriptBoxBg,
-                          borderColor: isActive ? '#10B981' : theme.cardBorder,
-                          borderWidth: isActive ? 2 : 1,
-                        },
+                        styles.settingsFontPreviewText,
+                        { fontSize, color: theme.transcriptText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {t('Cymraeg Sampl', 'Sample Text')}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsFontBtn,
+                      { backgroundColor: theme.btnSecondaryBg },
+                      fontSize >= 26 && styles.settingsBtnDisabled,
+                    ]}
+                    onPress={() => {
+                      setFontSize((s) => {
+                        const next = Math.min(26, s + 2);
+                        saveSettingsToStorage({ fontSize: next });
+                        return next;
+                      });
+                    }}
+                    disabled={fontSize >= 26}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add" size={18} color={theme.btnSecondaryText} />
+                    <Text style={[styles.settingsFontBtnText, { color: theme.btnSecondaryText }]}>
+                      A+
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* 4. UI Language Choice */}
+              <View style={[styles.settingsSectionBox, { borderColor: theme.cardBorder, backgroundColor: theme.transcriptBoxBg }]}>
+                <View style={styles.settingsLabelRow}>
+                  <Ionicons name="globe-outline" size={18} color="#00843D" />
+                  <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                    {t('Iaith y Rhyngwyneb', 'Interface Language')}
+                  </Text>
+                </View>
+                <Text style={[styles.settingsItemDesc, { color: theme.subText, marginTop: 4, marginBottom: 12 }]}>
+                  {t(
+                    'Dewiswch yr iaith ar gyfer botymau a thestun y rhaglen.',
+                    'Choose the display language for buttons and labels.'
+                  )}
+                </Text>
+
+                <View style={styles.settingsLangPillsRow}>
+                  {/* Bilingual */}
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsLangPill,
+                      { borderColor: theme.cardBorder },
+                      langMode === 'bilingual'
+                        ? { backgroundColor: '#00843D', borderColor: '#00843D' }
+                        : { backgroundColor: theme.cardBg },
+                    ]}
+                    onPress={() => {
+                      setLangMode('bilingual');
+                      saveSettingsToStorage({ langMode: 'bilingual' });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.settingsLangPillText,
+                        { color: langMode === 'bilingual' ? '#FFFFFF' : theme.headerText },
                       ]}
                     >
-                      <View style={styles.sessionCardHeader}>
-                        <View style={styles.sessionCardMetaRow}>
-                          <Ionicons
-                            name="calendar-outline"
-                            size={13}
-                            color={theme.subText}
-                          />
-                          <Text style={[styles.sessionCardDate, { color: theme.subText }]}>
-                            {session.createdAt}
-                          </Text>
-                          <View
-                            style={[
-                              styles.sessionCountPill,
-                              { backgroundColor: theme.timeBadgeBg },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.sessionCountPillText,
-                                { color: theme.timeBadgeText },
-                              ]}
-                            >
-                              {session.items.length}{' '}
-                              {langMode === 'cy'
-                                ? 'brawddeg'
-                                : langMode === 'en'
-                                ? 'sentences'
-                                : 'brawddeg'}
-                            </Text>
-                          </View>
-                        </View>
+                      Dwyieithog (CY/EN)
+                    </Text>
+                  </TouchableOpacity>
 
-                        {isActive && (
-                          <View style={styles.activeSessionBadge}>
-                            <Text style={styles.activeSessionBadgeText}>
-                              {langMode === 'en' ? 'ACTIVE' : 'CYFREDOL'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                  {/* Welsh */}
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsLangPill,
+                      { borderColor: theme.cardBorder },
+                      langMode === 'cy'
+                        ? { backgroundColor: '#00843D', borderColor: '#00843D' }
+                        : { backgroundColor: theme.cardBg },
+                    ]}
+                    onPress={() => {
+                      setLangMode('cy');
+                      saveSettingsToStorage({ langMode: 'cy' });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.settingsLangPillText,
+                        { color: langMode === 'cy' ? '#FFFFFF' : theme.headerText },
+                      ]}
+                    >
+                      Cymraeg (CY)
+                    </Text>
+                  </TouchableOpacity>
 
-                      <Text
-                        style={[styles.sessionCardTitle, { color: theme.headerText }]}
-                        numberOfLines={2}
-                      >
-                        “{session.title}”
-                      </Text>
+                  {/* English */}
+                  <TouchableOpacity
+                    style={[
+                      styles.settingsLangPill,
+                      { borderColor: theme.cardBorder },
+                      langMode === 'en'
+                        ? { backgroundColor: '#00843D', borderColor: '#00843D' }
+                        : { backgroundColor: theme.cardBg },
+                    ]}
+                    onPress={() => {
+                      setLangMode('en');
+                      saveSettingsToStorage({ langMode: 'en' });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.settingsLangPillText,
+                        { color: langMode === 'en' ? '#FFFFFF' : theme.headerText },
+                      ]}
+                    >
+                      English (EN)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                      {firstTranslation ? (
-                        <Text
-                          style={[
-                            styles.sessionCardTranslationPreview,
-                            { color: theme.translationText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          ↳ [EN] {firstTranslation}
-                        </Text>
-                      ) : null}
-
-                      <View style={styles.sessionCardActions}>
-                        <TouchableOpacity
-                          style={[
-                            styles.sessionResumeBtn,
-                            {
-                              backgroundColor: isActive
-                                ? theme.btnSecondaryBg
-                                : '#00843D',
-                            },
-                          ]}
-                          onPress={() => handleLoadSession(session)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons
-                            name={isActive ? 'checkmark-circle-outline' : 'play-outline'}
-                            size={15}
-                            color={isActive ? theme.btnSecondaryText : '#FFFFFF'}
-                          />
-                          <Text
-                            style={[
-                              styles.sessionResumeBtnText,
-                              {
-                                color: isActive ? theme.btnSecondaryText : '#FFFFFF',
-                              },
-                            ]}
-                          >
-                            {isActive
-                              ? t('Agor yn y Sgrin Fyw', 'View in Live Screen')
-                              : t('Adfer / Llwytho', 'Resume / Load')}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.sessionDeleteBtn,
-                            {
-                              backgroundColor: isDarkMode ? '#3B1519' : '#FEE2E2',
-                            },
-                          ]}
-                          onPress={() => handleDeleteSession(session.id)}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-
-            {/* Bottom Modal Buttons */}
-            <View style={styles.sessionsModalFooter}>
-              {sessions.length > 0 && (
-                <TouchableOpacity
-                  style={[
-                    styles.deleteAllSessionsBtn,
-                    { backgroundColor: isDarkMode ? '#3B1519' : '#FEE2E2' },
-                  ]}
-                  onPress={handleDeleteAllSessions}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                  <Text style={styles.deleteAllSessionsText}>
-                    {t('Dileu Pob Hanes', 'Delete All')}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
+              {/* 5. Link to About & Licences */}
               <TouchableOpacity
                 style={[
-                  styles.modalBottomCloseBtn,
-                  { backgroundColor: '#00843D', flex: 1, marginTop: 0 },
+                  styles.settingsAboutRow,
+                  { backgroundColor: theme.transcriptBoxBg, borderColor: theme.cardBorder },
                 ]}
-                onPress={() => setShowSessionsModal(false)}
-                activeOpacity={0.8}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setShowAboutModal(true);
+                }}
+                activeOpacity={0.7}
               >
-                <Text style={styles.modalBottomCloseText}>
-                  {t('Cau', 'Close')}
-                </Text>
+                <View style={styles.settingsLabelRow}>
+                  <Ionicons name="information-circle-outline" size={18} color="#00843D" />
+                  <Text style={[styles.settingsItemTitle, { color: theme.headerText }]}>
+                    {t('Gwybodaeth', 'About')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.subText} />
               </TouchableOpacity>
-            </View>
+            </ScrollView>
+
+            {/* Bottom Close Button */}
+            <TouchableOpacity
+              style={[styles.modalBottomCloseBtn, { backgroundColor: '#00843D', marginTop: 10 }]}
+              onPress={() => setShowSettingsModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalBottomCloseText}>
+                {t('Cau', 'Close')}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1834,13 +2040,21 @@ function MainApp() {
           >
             {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: theme.headerText }]}>
-                  Trawsgrifiwr Byw
-                </Text>
-                <Text style={[styles.modalSubtitle, { color: theme.subText }]}>
-                  Fersiwn 1.0.0 (Symudol / Mobile)
-                </Text>
+              <View style={styles.aboutHeaderLeft}>
+                <Image
+                  source={require('./assets/icon.png')}
+                  style={styles.aboutModalLogo}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalTitle, { color: theme.headerText }]}>
+                    Trawsgrifiwr Byw
+                  </Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.subText }]}>
+                    Fersiwn 1.1.0 (Symudol / Mobile)
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={() => setShowAboutModal(false)}
@@ -1879,7 +2093,7 @@ function MainApp() {
 
                 <View style={styles.creditItem}>
                   <Text style={[styles.creditTitle, { color: theme.headerText }]}>
-                    Sean (S34NW)
+                    Sean Williams (S34NW)
                   </Text>
                   <Text style={[styles.creditDesc, { color: theme.subText }]}>
                     {t(
@@ -2007,23 +2221,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
-  titleContainer: {
-    flex: 1,
-    paddingRight: 4,
-  },
-  titleRow: {
-    flexDirection: 'row',
+  logoButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 12,
-    marginTop: 2,
-    fontWeight: '500',
+  headerLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -2349,23 +2556,37 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   footerControls: {
-    paddingTop: 6,
-    paddingBottom: 8,
-    alignItems: 'center',
-  },
-  micButton: {
-    flexDirection: 'row',
+    paddingTop: 8,
+    paddingBottom: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 10,
+  },
+  micButtonWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 80,
+    height: 80,
+  },
+  micPulseRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#C8102E',
+    opacity: 0.22,
+  },
+  micButton: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 6,
   },
   micButtonReady: {
     backgroundColor: '#00843D', // Welsh Green
@@ -2375,12 +2596,8 @@ const styles = StyleSheet.create({
   },
   micButtonDisabled: {
     backgroundColor: '#64748B',
-  },
-  micButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    elevation: 1,
+    shadowOpacity: 0.1,
   },
   modalOverlay: {
     flex: 1,
@@ -2403,12 +2620,23 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(150, 150, 150, 0.2)',
+  },
+  aboutHeaderLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aboutModalLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
   },
   modalTitle: {
     fontSize: 20,
@@ -2616,6 +2844,134 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  saveToggleBtnActiveSolid: {
+    backgroundColor: '#00843D',
+  },
+  sessionsDropdownContainer: {
+    borderBottomWidth: 1,
+    padding: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 10,
+  },
+  sessionsDropdownHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sessionsDropdownTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  sessionsDropdownSubtitle: {
+    fontSize: 11,
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  dropdownNewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  dropdownNewBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sessionsDropdownScroll: {
+    maxHeight: 220,
+  },
+  emptyDropdownStateBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  emptyDropdownStateText: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  dropdownSessionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  dropdownSessionMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  dropdownSessionDate: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  dropdownSessionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  dropdownSessionTranslation: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  dropdownRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  dropdownDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  dropdownClearAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  dropdownClearAllText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dropdownCloseBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  dropdownCloseText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   sessionCountPill: {
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -2692,5 +3048,101 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '700',
+  },
+  settingsItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  settingsLabelGroup: {
+    flex: 1,
+  },
+  settingsLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingsItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  settingsItemDesc: {
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  settingsSectionBox: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 14,
+  },
+  settingsFontSizeBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 'auto',
+  },
+  settingsFontControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  settingsFontBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    gap: 4,
+    minWidth: 62,
+  },
+  settingsFontBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  settingsBtnDisabled: {
+    opacity: 0.4,
+  },
+  settingsFontPreviewBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    minHeight: 36,
+  },
+  settingsFontPreviewText: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  settingsLangPillsRow: {
+    gap: 8,
+  },
+  settingsLangPill: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsLangPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  settingsAboutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 14,
   },
 });
